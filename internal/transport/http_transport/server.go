@@ -1,30 +1,64 @@
 package http_transport
 
 import (
-	"account/internal/errs"
+	"context"
 	"fmt"
+	"net"
 	"net/http"
+	"sync"
+	"time"
 )
 
-func NewServer(accountHandler http.Handler) *Server {
+func NewServer(address string, accountHandler http.Handler) *Server {
 	return &Server{
+		httpServer: http.Server{
+			Addr: address,
+		},
 		AccountHandler: accountHandler,
 	}
 }
 
 type Server struct {
+	httpServer     http.Server
 	AccountHandler http.Handler
 }
 
-func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var head string
-	head, r.URL.Path = ShiftPath(r.URL.Path)
+func (s *Server) Start(stopWg *sync.WaitGroup, shutdownCh chan struct{}, errCh chan error) {
+	stopWg.Add(1)
+	defer stopWg.Done()
 
-	switch head {
-	case "accounts":
-		s.AccountHandler.ServeHTTP(w, r)
-		return
-	default:
-		SendError(errs.NotFound(fmt.Sprintf("Unknown resource: %s", head)), w)
+	startFuncErrCh := make(chan error)
+	startFunc := func() {
+		fmt.Println("Starting server")
+		listener, err := net.Listen("tcp", s.httpServer.Addr)
+		if err != nil {
+			startFuncErrCh <- err
+			return
+		}
+		fmt.Println("Server listening at " + listener.Addr().String())
+		err = s.httpServer.Serve(listener)
+		if err != nil {
+			startFuncErrCh <- err
+			return
+		}
+	}
+
+	stopFunc := func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		err := s.httpServer.Shutdown(ctx)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	go startFunc()
+
+	select {
+	case err := <-startFuncErrCh:
+		errCh <- err
+	case <-shutdownCh:
+		stopFunc()
 	}
 }
