@@ -3,7 +3,7 @@ package main
 import (
 	"account/internal/application/handler"
 	"account/internal/transport/http_transport"
-	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -22,12 +22,12 @@ func main() {
 
 	select {
 	case err := <-errCh:
-		fmt.Println("Failed to start up: " + err.Error())
+		log.Printf("Failed to start up: %s\n", err)
 
 	case <-shutdownCh:
-		fmt.Println("Waiting for shutdown")
+		log.Println("Waiting for shutdown")
 		wg.Wait()
-		fmt.Println("All services shutdown")
+		log.Println("All services shutdown")
 	}
 }
 

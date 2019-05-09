@@ -2,7 +2,7 @@ package http_transport
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"sync"
@@ -29,13 +29,13 @@ func (s *Server) Start(stopWg *sync.WaitGroup, shutdownCh chan struct{}, errCh c
 
 	startFuncErrCh := make(chan error)
 	startFunc := func() {
-		fmt.Println("Starting server")
+		log.Println("Starting server")
 		listener, err := net.Listen("tcp", s.httpServer.Addr)
 		if err != nil {
 			startFuncErrCh <- err
 			return
 		}
-		fmt.Println("Server listening at " + listener.Addr().String())
+		log.Printf("Server listening at %s\n", listener.Addr().String())
 		err = s.httpServer.Serve(listener)
 		if err != nil {
 			startFuncErrCh <- err
