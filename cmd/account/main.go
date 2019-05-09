@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	address := os.Getenv("ACCOUNT_ADDRESS")
+	address := os.Getenv("LISTEN_ADDRESS")
 
 	wg := &sync.WaitGroup{}
 	shutdownCh := make(chan struct{})
