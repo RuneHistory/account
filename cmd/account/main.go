@@ -11,12 +11,14 @@ import (
 )
 
 func main() {
+	address := os.Getenv("ACCOUNT_ADDRESS")
+
 	wg := &sync.WaitGroup{}
 	shutdownCh := make(chan struct{})
 	errCh := make(chan error)
 	go handleShutdownSignal(shutdownCh)
 
-	s := buildServer()
+	s := buildServer(address)
 	handler.InitHTTP(s)
 	go s.Start(wg, shutdownCh, errCh)
 
@@ -48,7 +50,7 @@ func handleShutdownSignal(shutdownCh chan struct{}) {
 	}
 }
 
-func buildServer() *http_transport.Server {
+func buildServer(address string) *http_transport.Server {
 	accountHandler := &handler.AccountHandler{}
-	return http_transport.NewServer("127.0.0.1:8000", accountHandler)
+	return http_transport.NewServer(address, accountHandler)
 }
