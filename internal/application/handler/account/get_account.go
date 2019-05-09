@@ -35,7 +35,7 @@ func (h *GetAccountHandler) HandleHTTP(id string) http.Handler {
 }
 
 func (h *GetAccountHandler) handle(r *GetAccountRequest) (*GetAccountResponse, error) {
-	acc := account.NewAccount("1-2-3-4", "Test Account 1", "test-account-1")
+	acc := account.NewAccount(r.ID, "Test Account 1", "test-account-1")
 	return &GetAccountResponse{
 		Account: acc,
 	}, nil
