@@ -1,8 +1,11 @@
 package main
 
 import (
-	"account/internal/application/handler"
+	"account/internal/application/handler/account"
 	"account/internal/transport/http_transport"
+	"errors"
+	"github.com/go-chi/chi"
+	_ "github.com/go-chi/chi"
 	"log"
 	"os"
 	"os/signal"
@@ -16,24 +19,31 @@ func main() {
 	wg := &sync.WaitGroup{}
 	shutdownCh := make(chan struct{})
 	errCh := make(chan error)
-	go handleShutdownSignal(shutdownCh)
+	go handleShutdownSignal(errCh)
 
-	s := buildServer(address)
-	handler.InitHTTP(s)
-	go s.Start(wg, shutdownCh, errCh)
+	r := chi.NewRouter()
 
-	select {
-	case err := <-errCh:
-		log.Printf("Failed to start up: %s\n", err)
+	getAccountsHandler := &account.GetAccountsHandler{}
+	getAccountHandler := &account.GetAccountHandler{}
 
-	case <-shutdownCh:
-		log.Println("Waiting for shutdown")
-		wg.Wait()
-		log.Println("All services shutdown")
+	r.Get("/", getAccountsHandler.HandleHTTP)
+	r.Get("/{id}", getAccountHandler.HandleHTTP)
+
+	go http_transport.Start(address, r, wg, shutdownCh, errCh)
+
+	err := <-errCh
+	if err != nil {
+		log.Printf("fatal err: %s\n", err)
 	}
+
+	log.Println("initiating graceful shutdown")
+	close(shutdownCh)
+
+	wg.Wait()
+	log.Println("shutdown")
 }
 
-func handleShutdownSignal(shutdownCh chan struct{}) {
+func handleShutdownSignal(errCh chan error) {
 	quitCh := make(chan os.Signal)
 	signal.Notify(quitCh, os.Interrupt, syscall.SIGTERM)
 
@@ -44,13 +54,8 @@ func handleShutdownSignal(shutdownCh chan struct{}) {
 			os.Exit(0)
 		}
 		if !hit {
-			close(shutdownCh)
+			errCh <- errors.New("shutdown signal received")
 		}
 		hit = true
 	}
-}
-
-func buildServer(address string) *http_transport.Server {
-	accountHandler := &handler.AccountHandler{}
-	return http_transport.NewServer(address, accountHandler)
 }
