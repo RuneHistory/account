@@ -44,7 +44,11 @@ func Migrate(db *sql.DB, migrations []Migration) error {
 			foundStart = true
 		}
 	}
-	log.Printf("will run %d migrations\n", len(unstartedMigrations))
+	if len(unstartedMigrations) == 0 {
+		log.Println("no migrations to run")
+		return nil
+	}
+	log.Printf("running %d migrations\n", len(unstartedMigrations))
 	return runMigrations(db, unstartedMigrations)
 }
 
@@ -60,6 +64,7 @@ func createMigrationsTable(db *sql.DB) error {
 
 func runMigrations(db *sql.DB, migrations []Migration) error {
 	for _, m := range migrations {
+		log.Printf("running migration: %s\n", m.GetName())
 		err := m.Up(db)
 		if err != nil {
 			log.Printf("migration %s failed\n", m.GetName())
@@ -81,7 +86,7 @@ func runMigrations(db *sql.DB, migrations []Migration) error {
 
 func getCurrentStage(db *sql.DB) (*MigrationRecord, error) {
 	r := &MigrationRecord{}
-	err := db.QueryRow("SELECT id, name FROM migrations WHERE success = 1 ORDER BY id DESC limit 1").Scan(r.ID, r.Name)
+	err := db.QueryRow("SELECT id, name FROM migrations WHERE success = 1 ORDER BY id DESC limit 1").Scan(&r.ID, &r.Name)
 	if err == sql.ErrNoRows {
 		return r, nil
 	}
