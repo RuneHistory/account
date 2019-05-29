@@ -1,6 +1,7 @@
 package account
 
 import (
+	"account/internal/application/service"
 	"account/internal/domain/account"
 	"account/internal/mapper"
 	"account/internal/transport/http_transport"
@@ -16,7 +17,14 @@ type GetAccountResponse struct {
 	Account *account.Account
 }
 
+func NewGetAccountHandler(accountService service.Account) *GetAccountHandler {
+	return &GetAccountHandler{
+		AccountService: accountService,
+	}
+}
+
 type GetAccountHandler struct {
+	AccountService service.Account
 }
 
 func (h *GetAccountHandler) HandleHTTP(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +42,10 @@ func (h *GetAccountHandler) HandleHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *GetAccountHandler) handle(r *GetAccountRequest) (*GetAccountResponse, error) {
-	acc := account.NewAccount(r.ID, "Test Account 1", "test-account-1")
+	acc, err := h.AccountService.GetById(r.ID)
+	if err != nil {
+		return nil, err
+	}
 	return &GetAccountResponse{
 		Account: acc,
 	}, nil

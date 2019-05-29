@@ -2,8 +2,10 @@ package main
 
 import (
 	"account/internal/application/handler/account"
+	"account/internal/application/service"
 	"account/internal/migrate"
 	"account/internal/migrate/migrations"
+	"account/internal/repository/mysql"
 	"account/internal/transport/http_transport"
 	"database/sql"
 	"errors"
@@ -42,8 +44,10 @@ func main() {
 
 	r := chi.NewRouter()
 
-	getAccountsHandler := &account.GetAccountsHandler{}
-	getAccountHandler := &account.GetAccountHandler{}
+	accountRepo := mysql.NewAccountMySQL(db)
+	accountService := service.NewAccountService(accountRepo)
+	getAccountsHandler := account.NewGetAccountsHandler(accountService)
+	getAccountHandler := account.NewGetAccountHandler(accountService)
 
 	r.Get("/", getAccountsHandler.HandleHTTP)
 	r.Get("/{id}", getAccountHandler.HandleHTTP)
