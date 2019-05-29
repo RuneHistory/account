@@ -46,3 +46,11 @@ func (r *AccountMySQL) GetById(id string) (*account.Account, error) {
 	}
 	return &a, nil
 }
+
+func (r *AccountMySQL) Create(a *account.Account) (*account.Account, error) {
+	_, err := r.DB.Exec("INSERT INTO accounts (id, nickname, slug) VALUES (?, ?, ?)", a.ID, a.Nickname, a.Slug)
+	if err != nil {
+		return nil, err
+	}
+	return a, nil
+}
