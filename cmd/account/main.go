@@ -2,10 +2,14 @@ package main
 
 import (
 	"account/internal/application/handler/account"
+	"account/internal/migrate"
+	"account/internal/migrate/migrations"
 	"account/internal/transport/http_transport"
+	"database/sql"
 	"errors"
 	"github.com/go-chi/chi"
 	_ "github.com/go-chi/chi"
+	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"os"
 	"os/signal"
@@ -15,11 +19,26 @@ import (
 
 func main() {
 	address := os.Getenv("LISTEN_ADDRESS")
+	dsn := os.Getenv("DSN")
 
 	wg := &sync.WaitGroup{}
 	shutdownCh := make(chan struct{})
 	errCh := make(chan error)
 	go handleShutdownSignal(errCh)
+
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		panic(err)
+	}
+	err = db.Ping()
+	if err != nil {
+		panic(err)
+	}
+
+	err = migrateDb(db)
+	if err != nil {
+		panic(err)
+	}
 
 	r := chi.NewRouter()
 
@@ -31,7 +50,7 @@ func main() {
 
 	go http_transport.Start(address, r, wg, shutdownCh, errCh)
 
-	err := <-errCh
+	err = <-errCh
 	if err != nil {
 		log.Printf("fatal err: %s\n", err)
 	}
@@ -58,4 +77,11 @@ func handleShutdownSignal(errCh chan error) {
 		}
 		hit = true
 	}
+}
+
+func migrateDb(db *sql.DB) error {
+	migrationArr := []migrate.Migration{
+		&migrations.CreateAccountsTable{},
+	}
+	return migrate.Migrate(db, migrationArr)
 }
