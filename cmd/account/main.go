@@ -1,8 +1,17 @@
 package main
 
 import (
-	"account/internal/application/handler"
+	"account/internal/application/handler/account"
+	"account/internal/application/service"
+	"account/internal/migrate"
+	"account/internal/migrate/migrations"
+	"account/internal/repository/mysql"
 	"account/internal/transport/http_transport"
+	"database/sql"
+	"errors"
+	"github.com/go-chi/chi"
+	_ "github.com/go-chi/chi"
+	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"os"
 	"os/signal"
@@ -12,28 +21,52 @@ import (
 
 func main() {
 	address := os.Getenv("LISTEN_ADDRESS")
+	dsn := os.Getenv("DSN")
 
 	wg := &sync.WaitGroup{}
 	shutdownCh := make(chan struct{})
 	errCh := make(chan error)
-	go handleShutdownSignal(shutdownCh)
+	go handleShutdownSignal(errCh)
 
-	s := buildServer(address)
-	handler.InitHTTP(s)
-	go s.Start(wg, shutdownCh, errCh)
-
-	select {
-	case err := <-errCh:
-		log.Printf("Failed to start up: %s\n", err)
-
-	case <-shutdownCh:
-		log.Println("Waiting for shutdown")
-		wg.Wait()
-		log.Println("All services shutdown")
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		panic(err)
 	}
+	err = db.Ping()
+	if err != nil {
+		panic(err)
+	}
+
+	err = migrateDb(db)
+	if err != nil {
+		panic(err)
+	}
+
+	r := chi.NewRouter()
+
+	accountRepo := mysql.NewAccountMySQL(db)
+	accountService := service.NewAccountService(accountRepo)
+	getAccountsHandler := account.NewGetAccountsHandler(accountService)
+	getAccountHandler := account.NewGetAccountHandler(accountService)
+
+	r.Get("/", getAccountsHandler.HandleHTTP)
+	r.Get("/{id}", getAccountHandler.HandleHTTP)
+
+	go http_transport.Start(address, r, wg, shutdownCh, errCh)
+
+	err = <-errCh
+	if err != nil {
+		log.Printf("fatal err: %s\n", err)
+	}
+
+	log.Println("initiating graceful shutdown")
+	close(shutdownCh)
+
+	wg.Wait()
+	log.Println("shutdown")
 }
 
-func handleShutdownSignal(shutdownCh chan struct{}) {
+func handleShutdownSignal(errCh chan error) {
 	quitCh := make(chan os.Signal)
 	signal.Notify(quitCh, os.Interrupt, syscall.SIGTERM)
 
@@ -44,13 +77,15 @@ func handleShutdownSignal(shutdownCh chan struct{}) {
 			os.Exit(0)
 		}
 		if !hit {
-			close(shutdownCh)
+			errCh <- errors.New("shutdown signal received")
 		}
 		hit = true
 	}
 }
 
-func buildServer(address string) *http_transport.Server {
-	accountHandler := &handler.AccountHandler{}
-	return http_transport.NewServer(address, accountHandler)
+func migrateDb(db *sql.DB) error {
+	migrationArr := []migrate.Migration{
+		&migrations.CreateAccountsTable{},
+	}
+	return migrate.Migrate(db, migrationArr)
 }
