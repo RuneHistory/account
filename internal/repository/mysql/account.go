@@ -54,3 +54,11 @@ func (r *AccountMySQL) Create(a *account.Account) (*account.Account, error) {
 	}
 	return a, nil
 }
+
+func (r *AccountMySQL) Update(a *account.Account) (*account.Account, error) {
+	_, err := r.DB.Exec("UPDATE accounts SET nickname = ?, slug = ? WHERE id = ?", a.Nickname, a.Slug, a.ID)
+	if err != nil {
+		return nil, err
+	}
+	return a, nil
+}

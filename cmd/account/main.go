@@ -50,6 +50,7 @@ func main() {
 	getAccountsHandler := account.NewGetAccountsHandler(accountService)
 	getAccountHandler := account.NewGetAccountHandler(accountService)
 	createAccountHandler := account.NewCreateAccountHandler(accountService)
+	updateAccountHandler := account.NewUpdateAccountHandler(accountService)
 
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
@@ -60,8 +61,9 @@ func main() {
 	r.Use(middleware.RedirectSlashes)
 
 	r.Get("/", getAccountsHandler.HandleHTTP)
-	r.Get("/{id}", getAccountHandler.HandleHTTP)
 	r.Post("/", createAccountHandler.HandleHTTP)
+	r.Get("/{id}", getAccountHandler.HandleHTTP)
+	r.Put("/{id}", updateAccountHandler.HandleHTTP)
 
 	go http_transport.Start(address, r, wg, shutdownCh, errCh)
 

@@ -10,6 +10,7 @@ type Account interface {
 	Get() ([]*account.Account, error)
 	GetById(id string) (*account.Account, error)
 	Create(nickname string) (*account.Account, error)
+	Update(account *account.Account) (*account.Account, error)
 }
 
 func NewAccountService(repo account.Repository) Account {
@@ -36,4 +37,10 @@ func (s *AccountService) Create(nickname string) (*account.Account, error) {
 	a := account.NewAccount(id, nickname, slug)
 	// TODO: Implement validation
 	return s.AccountRepo.Create(a)
+}
+
+func (s *AccountService) Update(acc *account.Account) (*account.Account, error) {
+	acc.Slug = slugify.Slugify(acc.Nickname)
+	// TODO: Implement validation
+	return s.AccountRepo.Update(acc)
 }
