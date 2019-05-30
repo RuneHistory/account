@@ -1,7 +1,6 @@
 package main
 
 import (
-	"account/internal/application/handler/account"
 	"account/internal/application/service"
 	"account/internal/migrate"
 	"account/internal/migrate/migrations"
@@ -11,7 +10,6 @@ import (
 	"errors"
 	"github.com/go-chi/chi"
 	_ "github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"os"
@@ -47,23 +45,7 @@ func main() {
 
 	accountRepo := mysql.NewAccountMySQL(db)
 	accountService := service.NewAccountService(accountRepo)
-	getAccountsHandler := account.NewGetAccountsHandler(accountService)
-	getAccountHandler := account.NewGetAccountHandler(accountService)
-	createAccountHandler := account.NewCreateAccountHandler(accountService)
-	updateAccountHandler := account.NewUpdateAccountHandler(accountService)
-
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RealIP)
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.Compress(2))
-	r.Use(middleware.RequestID)
-	r.Use(middleware.RedirectSlashes)
-
-	r.Get("/", getAccountsHandler.HandleHTTP)
-	r.Post("/", createAccountHandler.HandleHTTP)
-	r.Get("/{id}", getAccountHandler.HandleHTTP)
-	r.Put("/{id}", updateAccountHandler.HandleHTTP)
+	http_transport.Bootstrap(r, accountService)
 
 	go http_transport.Start(address, r, wg, shutdownCh, errCh)
 
