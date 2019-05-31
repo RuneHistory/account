@@ -3,6 +3,8 @@ package account
 import (
 	"account/internal/application/service"
 	"account/internal/domain/account"
+	"account/internal/errs"
+	"fmt"
 )
 
 type GetAccountRequest struct {
@@ -28,6 +30,9 @@ func (h *GetAccountHandler) Handle(r interface{}) (interface{}, error) {
 	acc, err := h.AccountService.GetById(req.ID)
 	if err != nil {
 		return nil, err
+	}
+	if acc == nil {
+		return nil, errs.NotFound(fmt.Sprintf("Account %s not found", req.ID))
 	}
 	return &GetAccountResponse{
 		Account: acc,

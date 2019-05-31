@@ -22,6 +22,7 @@ import (
 func main() {
 	address := os.Getenv("LISTEN_ADDRESS")
 	dsn := os.Getenv("DSN")
+	dsn = dsn + "?multiStatements=true&parseTime=true"
 
 	wg := &sync.WaitGroup{}
 	shutdownCh := make(chan struct{})

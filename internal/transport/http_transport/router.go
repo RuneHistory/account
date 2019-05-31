@@ -3,7 +3,6 @@ package http_transport
 import (
 	"account/internal/application/handler/account"
 	"account/internal/application/service"
-	"account/internal/errs"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"net/http"
@@ -13,7 +12,7 @@ func WrapEndpoint(endpoint Endpoint, decoder DecoderFunc, encoder EncoderFunc, r
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		req, err := decoder(r)
 		if err != nil {
-			SendError(errs.BadRequest(err.Error()), w)
+			SendError(err, w)
 			return
 		}
 		res, err := endpoint.Handle(req)

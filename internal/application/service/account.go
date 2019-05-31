@@ -6,6 +6,7 @@ import (
 	"account/internal/errs"
 	"github.com/mozillazg/go-slugify"
 	"github.com/satori/go.uuid"
+	"time"
 )
 
 type Account interface {
@@ -38,7 +39,8 @@ func (s *AccountService) GetById(id string) (*account.Account, error) {
 func (s *AccountService) Create(nickname string) (*account.Account, error) {
 	id := uuid.NewV4().String()
 	slug := slugify.Slugify(nickname)
-	a := account.NewAccount(id, nickname, slug)
+	now := time.Now()
+	a := account.NewAccount(id, nickname, slug, now)
 	if err := s.Validator.NewAccount(a); err != nil {
 		return nil, errs.BadRequest(err.Error())
 	}
