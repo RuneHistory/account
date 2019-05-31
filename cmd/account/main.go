@@ -2,6 +2,7 @@ package main
 
 import (
 	"account/internal/application/service"
+	"account/internal/domain/validate"
 	"account/internal/migrate"
 	"account/internal/migrate/migrations"
 	"account/internal/repository/mysql"
@@ -44,7 +45,9 @@ func main() {
 	r := chi.NewRouter()
 
 	accountRepo := mysql.NewAccountMySQL(db)
-	accountService := service.NewAccountService(accountRepo)
+	accountRules := validate.NewAccountRules(accountRepo)
+	accountValidator := validate.NewAccountValidator(accountRules)
+	accountService := service.NewAccountService(accountRepo, accountValidator)
 	http_transport.Bootstrap(r, accountService)
 
 	go http_transport.Start(address, r, wg, shutdownCh, errCh)
