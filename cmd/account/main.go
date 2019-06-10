@@ -1,8 +1,8 @@
 package main
 
 import (
-	"account/internal/application/handler/account"
 	"account/internal/application/service"
+	"account/internal/domain/validate"
 	"account/internal/migrate"
 	"account/internal/migrate/migrations"
 	"account/internal/repository/mysql"
@@ -22,6 +22,7 @@ import (
 func main() {
 	address := os.Getenv("LISTEN_ADDRESS")
 	dsn := os.Getenv("DSN")
+	dsn = dsn + "?multiStatements=true&parseTime=true"
 
 	wg := &sync.WaitGroup{}
 	shutdownCh := make(chan struct{})
@@ -45,12 +46,10 @@ func main() {
 	r := chi.NewRouter()
 
 	accountRepo := mysql.NewAccountMySQL(db)
-	accountService := service.NewAccountService(accountRepo)
-	getAccountsHandler := account.NewGetAccountsHandler(accountService)
-	getAccountHandler := account.NewGetAccountHandler(accountService)
-
-	r.Get("/", getAccountsHandler.HandleHTTP)
-	r.Get("/{id}", getAccountHandler.HandleHTTP)
+	accountRules := validate.NewAccountRules(accountRepo)
+	accountValidator := validate.NewAccountValidator(accountRules)
+	accountService := service.NewAccountService(accountRepo, accountValidator)
+	http_transport.Bootstrap(r, accountService)
 
 	go http_transport.Start(address, r, wg, shutdownCh, errCh)
 
