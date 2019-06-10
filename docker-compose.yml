@@ -1,0 +1,24 @@
+version: '3.5'
+
+services:
+  app:
+    build:
+      context: ""
+      dockerfile: Dockerfile.local
+    ports:
+      - "8001:80"
+    networks:
+      local-network:
+        aliases:
+          - rh-account
+    container_name: rh-account
+    environment:
+      LISTEN_ADDRESS: :80
+      DSN: root:localdev@tcp(rh-local-mysql:3306)/runehistory_account
+      WAIT_HOSTS: rh-local-mysql:3306
+
+networks:
+  local-network:
+    external:
+      name: rh-local-network
+
