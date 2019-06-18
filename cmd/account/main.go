@@ -2,8 +2,8 @@ package main
 
 import (
 	"account/internal/application/service"
-	"account/internal/broker/kafka"
 	"account/internal/domain/validate"
+	"account/internal/events"
 	"account/internal/migrate"
 	"account/internal/migrate/migrations"
 	"account/internal/repository/mysql"
@@ -54,14 +54,14 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	dispatcher := events.NewKafkaDispatcher(producer)
 
 	r := chi.NewRouter()
 
 	accountRepo := mysql.NewAccountMySQL(db)
-	accountPublisher := kafka.NewAccountKafka(producer)
 	accountRules := validate.NewAccountRules(accountRepo)
 	accountValidator := validate.NewAccountValidator(accountRules)
-	accountService := service.NewAccountService(accountRepo, accountValidator, accountPublisher)
+	accountService := service.NewAccountService(accountRepo, accountValidator, dispatcher)
 	http_transport.Bootstrap(r, accountService)
 
 	go http_transport.Start(address, r, wg, shutdownCh, errCh)

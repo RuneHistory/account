@@ -4,6 +4,7 @@ import (
 	"account/internal/domain/account"
 	"account/internal/domain/validate"
 	"account/internal/errs"
+	"account/internal/events"
 	"github.com/mozillazg/go-slugify"
 	"github.com/satori/go.uuid"
 	"time"
@@ -16,18 +17,18 @@ type Account interface {
 	Update(account *account.Account) (*account.Account, error)
 }
 
-func NewAccountService(repo account.Repository, validator validate.AccountValidator, publisher account.Publisher) Account {
+func NewAccountService(repo account.Repository, validator validate.AccountValidator, dispatcher events.Dispatcher) Account {
 	return &AccountService{
 		AccountRepo: repo,
 		Validator:   validator,
-		Publisher:   publisher,
+		Dispatcher:  dispatcher,
 	}
 }
 
 type AccountService struct {
 	AccountRepo account.Repository
 	Validator   validate.AccountValidator
-	Publisher   account.Publisher
+	Dispatcher  events.Dispatcher
 }
 
 func (s *AccountService) Get() ([]*account.Account, error) {
@@ -50,7 +51,9 @@ func (s *AccountService) Create(nickname string) (*account.Account, error) {
 	if err != nil {
 		return nil, errs.InternalServer(err.Error())
 	}
-	err = s.Publisher.New(acc)
+
+	event := events.NewAccount(acc)
+	err = s.Dispatcher.Dispatch(event)
 	if err != nil {
 		return nil, errs.InternalServer(err.Error())
 	}
