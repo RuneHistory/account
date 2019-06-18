@@ -65,5 +65,15 @@ func (s *AccountService) Update(a *account.Account) (*account.Account, error) {
 	if err := s.Validator.UpdateAccount(a); err != nil {
 		return nil, errs.BadRequest(err.Error())
 	}
-	return s.AccountRepo.Update(a)
+	acc, err := s.AccountRepo.Update(a)
+	if err != nil {
+		return nil, errs.InternalServer(err.Error())
+	}
+
+	event := events.RenameAccount(acc)
+	err = s.Dispatcher.Dispatch(event)
+	if err != nil {
+		return nil, errs.InternalServer(err.Error())
+	}
+	return acc, nil
 }
