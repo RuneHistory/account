@@ -16,16 +16,18 @@ type Account interface {
 	Update(account *account.Account) (*account.Account, error)
 }
 
-func NewAccountService(repo account.Repository, validator validate.AccountValidator) Account {
+func NewAccountService(repo account.Repository, validator validate.AccountValidator, publisher account.Publisher) Account {
 	return &AccountService{
 		AccountRepo: repo,
 		Validator:   validator,
+		Publisher:   publisher,
 	}
 }
 
 type AccountService struct {
 	AccountRepo account.Repository
 	Validator   validate.AccountValidator
+	Publisher   account.Publisher
 }
 
 func (s *AccountService) Get() ([]*account.Account, error) {
@@ -44,7 +46,15 @@ func (s *AccountService) Create(nickname string) (*account.Account, error) {
 	if err := s.Validator.NewAccount(a); err != nil {
 		return nil, errs.BadRequest(err.Error())
 	}
-	return s.AccountRepo.Create(a)
+	acc, err := s.AccountRepo.Create(a)
+	if err != nil {
+		return nil, errs.InternalServer(err.Error())
+	}
+	err = s.Publisher.New(acc)
+	if err != nil {
+		return nil, errs.InternalServer(err.Error())
+	}
+	return acc, nil
 }
 
 func (s *AccountService) Update(a *account.Account) (*account.Account, error) {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"account/internal/application/service"
+	"account/internal/broker/kafka"
 	"account/internal/domain/validate"
 	"account/internal/migrate"
 	"account/internal/migrate/migrations"
@@ -9,20 +10,26 @@ import (
 	"account/internal/transport/http_transport"
 	"database/sql"
 	"errors"
+	"github.com/Shopify/sarama"
 	"github.com/go-chi/chi"
 	_ "github.com/go-chi/chi"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
+	"time"
 )
 
 func main() {
 	address := os.Getenv("LISTEN_ADDRESS")
 	dsn := os.Getenv("DSN")
 	dsn = dsn + "?multiStatements=true&parseTime=true"
+
+	brokers := os.Getenv("KAFKA_BROKERS")
+	brokerList := strings.Split(brokers, ",")
 
 	wg := &sync.WaitGroup{}
 	shutdownCh := make(chan struct{})
@@ -43,12 +50,18 @@ func main() {
 		panic(err)
 	}
 
+	producer, err := createProducer(brokerList)
+	if err != nil {
+		panic(err)
+	}
+
 	r := chi.NewRouter()
 
 	accountRepo := mysql.NewAccountMySQL(db)
+	accountPublisher := kafka.NewAccountKafka(producer)
 	accountRules := validate.NewAccountRules(accountRepo)
 	accountValidator := validate.NewAccountValidator(accountRules)
-	accountService := service.NewAccountService(accountRepo, accountValidator)
+	accountService := service.NewAccountService(accountRepo, accountValidator, accountPublisher)
 	http_transport.Bootstrap(r, accountService)
 
 	go http_transport.Start(address, r, wg, shutdownCh, errCh)
@@ -87,4 +100,13 @@ func migrateDb(db *sql.DB) error {
 		&migrations.CreateAccountsTable{},
 	}
 	return migrate.Migrate(db, migrationArr)
+}
+
+func createProducer(brokerList []string) (sarama.SyncProducer, error) {
+	config := sarama.NewConfig()
+	config.Producer.RequiredAcks = sarama.WaitForAll
+	config.Producer.Retry.Max = 10
+	config.Producer.Return.Successes = true
+	config.Producer.Timeout = time.Second
+	return sarama.NewSyncProducer(brokerList, config)
 }

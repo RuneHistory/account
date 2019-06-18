@@ -15,7 +15,8 @@ services:
     environment:
       LISTEN_ADDRESS: :80
       DSN: root:localdev@tcp(rh-local-mysql:3306)/runehistory_account
-      WAIT_HOSTS: rh-local-mysql:3306
+      KAFKA_BROKERS: rh-local-kafka:9092
+      WAIT_HOSTS: rh-local-mysql:3306,rh-local-kafka:9092
 
 networks:
   local-network:
