@@ -2,7 +2,6 @@ package events
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/Shopify/sarama"
 	"log"
 )
@@ -18,10 +17,7 @@ type KafkaDispatcher struct {
 }
 
 func (d *KafkaDispatcher) Dispatch(e Event) error {
-	event, ok := e.(KafkaEvent)
-	if !ok {
-		return errors.New("non-kafka event given")
-	}
+	event := e.(KafkaEvent)
 	encoded, err := json.Marshal(event.Body())
 	if err != nil {
 		return err
