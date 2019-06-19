@@ -34,7 +34,7 @@ func (d *KafkaDispatcher) Dispatch(e Event) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("published event %s with partition %d offset %s", event.Topic(), partition, offset)
+	log.Printf("published event %s with partition %d offset %d", event.Topic(), partition, offset)
 	return nil
 }
 
