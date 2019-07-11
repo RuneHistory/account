@@ -2,6 +2,8 @@ github.com/DataDog/zstd v1.3.6-0.20190409195224-796139022798 h1:2T/jmrHeTezcCM58
 github.com/DataDog/zstd v1.3.6-0.20190409195224-796139022798/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
 github.com/RuneHistory/events v0.0.1 h1:9F+z9f31sdlme9XmE2b1b4jvy1+fBZcdGxzVWETbmec=
 github.com/RuneHistory/events v0.0.1/go.mod h1:aJixcJ5B2gwRTBN7SKDxLIAaHncqLx9qSmZ1mzTU0Z0=
+github.com/RuneHistory/events v0.1.0 h1:dUHyHeMMj9VIrDj8MuMgUK9Uy/0iubLHlbshFyqvOLc=
+github.com/RuneHistory/events v0.1.0/go.mod h1:aJixcJ5B2gwRTBN7SKDxLIAaHncqLx9qSmZ1mzTU0Z0=
 github.com/Shopify/sarama v1.22.1 h1:exyEsKLGyCsDiqpV5Lr4slFi8ev2KiM3cP1KZ6vnCQ0=
 github.com/Shopify/sarama v1.22.1/go.mod h1:FRzlvRpMFO/639zY1SDxUxkqH97Y0ndM5CbGj6oG3As=
 github.com/Shopify/toxiproxy v2.1.4+incompatible/go.mod h1:OXgGpZ6Cli1/URJOF1DMxUHB2q5Ap20/P/eIdh4G0pI=

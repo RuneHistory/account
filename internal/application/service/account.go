@@ -77,10 +77,15 @@ func (s *AccountService) Update(a *account.Account) (*account.Account, error) {
 		return nil, errs.InternalServer(err.Error())
 	}
 
-	//event := events.RenameAccount(acc)
-	//err = s.Dispatcher.Dispatch(event)
-	//if err != nil {
-	//	return nil, errs.InternalServer(err.Error())
-	//}
+	renameAccountEvent := &events.RenameAccountEvent{
+		ID:        acc.ID,
+		Slug:      acc.Slug,
+		Nickname:  acc.Nickname,
+		UpdatedAt: time.Now(),
+	}
+	err = s.Publisher.Write(renameAccountEvent)
+	if err != nil {
+		return nil, errs.InternalServer(err.Error())
+	}
 	return acc, nil
 }
