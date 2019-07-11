@@ -3,17 +3,17 @@ package main
 import (
 	"account/internal/application/service"
 	"account/internal/domain/validate"
-	"account/internal/events"
 	"account/internal/migrate"
 	"account/internal/migrate/migrations"
 	"account/internal/repository/mysql"
 	"account/internal/transport/http_transport"
+	"context"
 	"database/sql"
-	"errors"
 	"github.com/Shopify/sarama"
 	"github.com/go-chi/chi"
 	_ "github.com/go-chi/chi"
 	_ "github.com/go-sql-driver/mysql"
+	saramaEvents "github.com/jmwri/go-events/sarama"
 	"log"
 	"os"
 	"os/signal"
@@ -31,10 +31,18 @@ func main() {
 	brokers := os.Getenv("KAFKA_BROKERS")
 	brokerList := strings.Split(brokers, ",")
 
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
 	wg := &sync.WaitGroup{}
 	shutdownCh := make(chan struct{})
+	go handleShutdownSignal(shutdownCh)
+	go func() {
+		<-shutdownCh
+		cancel()
+	}()
+
 	errCh := make(chan error)
-	go handleShutdownSignal(errCh)
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -54,44 +62,64 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	dispatcher := events.NewKafkaDispatcher(producer)
+	defer func() {
+		err := producer.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	publisher := saramaEvents.NewPublisher(producer)
 
 	r := chi.NewRouter()
 
 	accountRepo := mysql.NewAccountMySQL(db)
 	accountRules := validate.NewAccountRules(accountRepo)
 	accountValidator := validate.NewAccountValidator(accountRules)
-	accountService := service.NewAccountService(accountRepo, accountValidator, dispatcher)
+	accountService := service.NewAccountService(accountRepo, accountValidator, publisher)
 	http_transport.Bootstrap(r, accountService)
 
-	go http_transport.Start(address, r, wg, shutdownCh, errCh)
+	wg.Add(1)
+	go http_transport.Start(address, r, wg, ctx, errCh)
 
-	err = <-errCh
-	if err != nil {
-		log.Printf("fatal err: %s\n", err)
+	// doneCh will be closed once wg is done
+	doneCh := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(doneCh)
+	}()
+
+	select {
+	case <-doneCh:
+		// we're finished so start the shutdown
+		log.Println("all services finished")
+	case <-ctx.Done():
+		break
+		// break out and wait for shutdown
 	}
 
-	log.Println("initiating graceful shutdown")
-	close(shutdownCh)
+	log.Println("waiting for shutdown")
 
-	wg.Wait()
-	log.Println("shutdown")
+	select {
+	case <-time.After(time.Second * 10):
+		log.Println("killed - took too long to shutdown")
+	case <-doneCh:
+		log.Println("all services shutdown")
+	}
 }
 
-func handleShutdownSignal(errCh chan error) {
+func handleShutdownSignal(shutdownCh chan struct{}) {
 	quitCh := make(chan os.Signal)
 	signal.Notify(quitCh, os.Interrupt, syscall.SIGTERM)
 
-	hit := false
+	startedShutdown := false
 	for {
 		<-quitCh
-		if hit {
+		if startedShutdown {
 			os.Exit(0)
 		}
-		if !hit {
-			errCh <- errors.New("shutdown signal received")
-		}
-		hit = true
+		close(shutdownCh)
+		startedShutdown = true
 	}
 }
 

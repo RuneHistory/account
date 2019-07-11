@@ -6,11 +6,9 @@ import (
 	"net"
 	"net/http"
 	"sync"
-	"time"
 )
 
-func Start(address string, r http.Handler, stopWg *sync.WaitGroup, shutdownCh chan struct{}, errCh chan error) {
-	stopWg.Add(1)
+func Start(address string, r http.Handler, stopWg *sync.WaitGroup, ctx context.Context, errCh chan error) {
 	defer stopWg.Done()
 
 	s := &http.Server{
@@ -34,8 +32,7 @@ func Start(address string, r http.Handler, stopWg *sync.WaitGroup, shutdownCh ch
 	}
 
 	stopFunc := func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+		ctx := context.Background()
 
 		err := s.Shutdown(ctx)
 		if err != nil {
@@ -48,7 +45,7 @@ func Start(address string, r http.Handler, stopWg *sync.WaitGroup, shutdownCh ch
 	select {
 	case err := <-startFuncErrCh:
 		errCh <- err
-	case <-shutdownCh:
+	case <-ctx.Done():
 		stopFunc()
 	}
 }
