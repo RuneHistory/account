@@ -36,13 +36,17 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	shutdownCh := make(chan struct{})
+	errCh := make(chan error)
 	go handleShutdownSignal(shutdownCh)
 	go func() {
-		<-shutdownCh
+		select {
+		case <-shutdownCh:
+			break
+		case err := <-errCh:
+			log.Printf("fatal error: %s", err)
+		}
 		cancel()
 	}()
-
-	errCh := make(chan error)
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
