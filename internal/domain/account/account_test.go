@@ -2,6 +2,7 @@ package account
 
 import (
 	"testing"
+	"time"
 )
 
 func TestNewAccount(t *testing.T) {
@@ -9,7 +10,8 @@ func TestNewAccount(t *testing.T) {
 	uuid := "my-uuid"
 	nickname := "Jim"
 	slug := "jim"
-	acc := NewAccount(uuid, nickname, slug)
+	now := time.Now()
+	acc := NewAccount(uuid, nickname, slug, now)
 	if uuid != acc.ID {
 		t.Errorf("expected account ID to equal %s, got %s", uuid, acc.ID)
 	}
@@ -18,5 +20,8 @@ func TestNewAccount(t *testing.T) {
 	}
 	if slug != acc.Slug {
 		t.Errorf("expected account slug to equal %s, got %s", slug, acc.Slug)
+	}
+	if now != acc.CreatedAt {
+		t.Errorf("expected account created at to equal %s, got %s", now, acc.CreatedAt)
 	}
 }

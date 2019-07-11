@@ -3,11 +3,13 @@ package mapper
 import (
 	"account/internal/domain/account"
 	"testing"
+	"time"
 )
 
 func TestAccountToHttpV1(t *testing.T) {
 	t.Parallel()
-	acc := account.NewAccount("my-uuid", "Jim", "jim")
+	now := time.Now()
+	acc := account.NewAccount("my-uuid", "Jim", "jim", now)
 	mapped := AccountToHttpV1(acc)
 	if acc.ID != mapped.ID {
 		t.Errorf("Expecting %s, got %s", acc.ID, mapped.ID)
@@ -17,6 +19,9 @@ func TestAccountToHttpV1(t *testing.T) {
 	}
 	if acc.Slug != mapped.Slug {
 		t.Errorf("Expecting %s, got %s", acc.Slug, mapped.Slug)
+	}
+	if acc.CreatedAt != mapped.CreatedAt {
+		t.Errorf("Expecting %s, got %s", acc.CreatedAt, mapped.CreatedAt)
 	}
 }
 
