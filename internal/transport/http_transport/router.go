@@ -5,29 +5,8 @@ import (
 	"account/internal/application/service"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"net/http"
+	"github.com/jmwri/go-http"
 )
-
-func WrapEndpoint(endpoint Endpoint, decoder DecoderFunc, encoder EncoderFunc, responder ResponderFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req, err := decoder(r)
-		if err != nil {
-			SendError(err, w)
-			return
-		}
-		res, err := endpoint.Handle(req)
-		if err != nil {
-			SendError(err, w)
-			return
-		}
-		encoded, err := encoder(res)
-		if err != nil {
-			SendError(err, w)
-			return
-		}
-		responder(w, encoded)
-	})
-}
 
 func Bootstrap(r *chi.Mux, accountService service.Account) {
 	getAccountsHandler := account.NewGetAccountsHandler(accountService)
@@ -43,25 +22,25 @@ func Bootstrap(r *chi.Mux, accountService service.Account) {
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RedirectSlashes)
 
-	r.Get("/", WrapEndpoint(
+	r.Get("/", go_http.WrapEndpoint(
 		getAccountsHandler,
 		GetAccountsDecoder,
 		GetAccountsEncoder,
 		GetAccountsResponder,
 	))
-	r.Post("/", WrapEndpoint(
+	r.Post("/", go_http.WrapEndpoint(
 		createAccountHandler,
 		CreateAccountDecoder,
 		CreateAccountEncoder,
 		CreateAccountResponder,
 	))
-	r.Get("/{id}", WrapEndpoint(
+	r.Get("/{id}", go_http.WrapEndpoint(
 		getAccountHandler,
 		GetAccountDecoder,
 		GetAccountEncoder,
 		GetAccountResponder,
 	))
-	r.Put("/{id}", WrapEndpoint(
+	r.Put("/{id}", go_http.WrapEndpoint(
 		updateAccountHandler,
 		UpdateAccountDecoder,
 		UpdateAccountEncoder,

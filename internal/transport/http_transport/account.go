@@ -5,12 +5,13 @@ import (
 	"account/internal/errs"
 	"account/internal/mapper"
 	"github.com/go-chi/chi"
+	"github.com/jmwri/go-http"
 	"net/http"
 )
 
 func CreateAccountDecoder(r *http.Request) (interface{}, error) {
 	req := &accountHandler.CreateAccountRequest{}
-	err := ParseJsonBody(r, req)
+	err := go_http.ParseJsonBody(r, req)
 	if err != nil {
 		return nil, errs.BadRequest(err.Error())
 	}
@@ -23,7 +24,7 @@ func CreateAccountEncoder(d interface{}) (interface{}, error) {
 }
 
 func CreateAccountResponder(w http.ResponseWriter, d interface{}) {
-	SendJson(d, w)
+	go_http.SendJson(d, w)
 }
 
 func GetAccountDecoder(r *http.Request) (interface{}, error) {
@@ -39,7 +40,7 @@ func GetAccountEncoder(d interface{}) (interface{}, error) {
 }
 
 func GetAccountResponder(w http.ResponseWriter, d interface{}) {
-	SendJson(d, w)
+	go_http.SendJson(d, w)
 }
 
 func GetAccountsDecoder(_ *http.Request) (interface{}, error) {
@@ -57,14 +58,14 @@ func GetAccountsEncoder(d interface{}) (interface{}, error) {
 }
 
 func GetAccountsResponder(w http.ResponseWriter, d interface{}) {
-	SendJson(d, w)
+	go_http.SendJson(d, w)
 }
 
 func UpdateAccountDecoder(r *http.Request) (interface{}, error) {
 	req := &accountHandler.UpdateAccountRequest{
 		ID: chi.URLParam(r, "id"),
 	}
-	err := ParseJsonBody(r, req)
+	err := go_http.ParseJsonBody(r, req)
 	if err != nil {
 		return nil, errs.BadRequest(err.Error())
 	}
@@ -77,5 +78,5 @@ func UpdateAccountEncoder(d interface{}) (interface{}, error) {
 }
 
 func UpdateAccountResponder(w http.ResponseWriter, d interface{}) {
-	SendJson(d, w)
+	go_http.SendJson(d, w)
 }

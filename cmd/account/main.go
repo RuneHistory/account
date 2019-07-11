@@ -14,6 +14,7 @@ import (
 	_ "github.com/go-chi/chi"
 	_ "github.com/go-sql-driver/mysql"
 	saramaEvents "github.com/jmwri/go-events/sarama"
+	"github.com/jmwri/go-http"
 	"log"
 	"os"
 	"os/signal"
@@ -84,7 +85,7 @@ func main() {
 	http_transport.Bootstrap(r, accountService)
 
 	wg.Add(1)
-	go http_transport.Start(address, r, wg, ctx, errCh)
+	go go_http.Start(address, r, wg, ctx, errCh)
 
 	// doneCh will be closed once wg is done
 	doneCh := make(chan struct{})
